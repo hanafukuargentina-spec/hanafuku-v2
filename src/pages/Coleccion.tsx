@@ -2,15 +2,15 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
-import { productosData, CATEGORIAS, type Categoria } from "../data/productos.data";
-import { supabase, mapDbProducto, type DbProducto } from "../lib/supabase";
+import { CATEGORIAS, type Categoria } from "../data/productos.data";
+import { supabase, mapDbToProducto, type DbProducto } from "../lib/supabase";
 import type { Producto } from "../types";
 import ProductCard from "../components/ProductCard";
 import { stagger } from "../lib/motion";
 
 export default function Coleccion() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [productos, setProductos] = useState<Producto[]>(productosData);
+  const [productos, setProductos] = useState<Producto[]>([]);
   const [categoriaActiva, setCategoriaActiva] = useState<Categoria>(
     (searchParams.get("categoria") as Categoria) || "Todas"
   );
@@ -19,27 +19,15 @@ export default function Coleccion() {
 
   useEffect(() => {
     async function fetchProductos() {
-      if (!supabase) {
-        setProductos(productosData);
-        setLoading(false);
-        return;
-      }
-      try {
-        const { data, error } = await supabase
-          .from("productos")
-          .select("*")
-          .order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("productos")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-        if (error || !data || data.length === 0) {
-          setProductos(productosData);
-        } else {
-          setProductos((data as DbProducto[]).map(mapDbProducto));
-        }
-      } catch {
-        setProductos(productosData);
-      } finally {
-        setLoading(false);
+      if (!error && data) {
+        setProductos((data as DbProducto[]).map(mapDbToProducto));
       }
+      setLoading(false);
     }
 
     fetchProductos();

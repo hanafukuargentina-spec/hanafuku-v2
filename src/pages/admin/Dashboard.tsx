@@ -8,16 +8,20 @@ import {
   LogOut,
   Package,
   Search,
+  ImageIcon,
 } from "lucide-react";
-import { supabase, type DbProducto } from "../../lib/supabase";
-import { productosData, formatPrice } from "../../data/productos.data";
+import { supabase, mapDbToProducto, type DbProducto } from "../../lib/supabase";
+import { formatPrice, CATEGORIAS } from "../../data/productos.data";
 import type { Producto } from "../../types";
 import { fadeInUp, stagger } from "../../lib/motion";
+
+type CategoriaFilter = (typeof CATEGORIAS)[number];
 
 export default function Dashboard() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
+  const [categoriaActiva, setCategoriaActiva] = useState<CategoriaFilter>("Todas");
   const [deleting, setDeleting] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -27,78 +31,59 @@ export default function Dashboard() {
 
   async function fetchProductos() {
     setLoading(true);
-    if (!supabase) { setProductos(productosData); setLoading(false); return; }
-    try {
-      const { data, error } = await supabase
-        .from("productos")
-        .select("*")
-        .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("productos")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-      if (error || !data || data.length === 0) {
-        setProductos(productosData);
-      } else {
-        setProductos(
-          (data as DbProducto[]).map((db) => ({
-            id: db.id,
-            nombre: db.nombre,
-            subtitulo: db.subtitulo,
-            categoria: db.categoria,
-            precioOriginal: db.precio_original,
-            precioActual: db.precio_actual,
-            descuento: db.descuento,
-            rating: db.rating,
-            totalOpiniones: db.total_opiniones,
-            vendidos: db.vendidos,
-            stock: db.stock,
-            tallas: db.tallas,
-            colores: db.colores,
-            descripcion: db.descripcion,
-            caracteristicas: db.caracteristicas,
-            imagen_url: db.imagen_url ?? undefined,
-            imagenes: db.imagenes ?? undefined,
-            reviews: [],
-          }))
-        );
-      }
-    } catch {
-      setProductos(productosData);
-    } finally {
-      setLoading(false);
+    if (!error && data) {
+      setProductos((data as DbProducto[]).map(mapDbToProducto));
     }
+    setLoading(false);
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm("Estas seguro de que queres eliminar este producto?")) return;
-
     setDeleting(id);
-    try {
-      const { error } = await supabase!.from("productos").delete().eq("id", id);
-      if (!error) {
-        setProductos((prev) => prev.filter((p) => p.id !== id));
-      }
-    } catch {
-      // Silently fail
-    } finally {
-      setDeleting(null);
+
+    const producto = productos.find((p) => p.id === id);
+    if (producto?.imagen_url) {
+      const path = extractStoragePath(producto.imagen_url);
+      if (path) await supabase.storage.from("productos").remove([path]);
     }
+    if (producto?.imagenes) {
+      const paths = producto.imagenes.map(extractStoragePath).filter(Boolean) as string[];
+      if (paths.length > 0) await supabase.storage.from("productos").remove(paths);
+    }
+
+    const { error } = await supabase.from("productos").delete().eq("id", id);
+    if (!error) setProductos((prev) => prev.filter((p) => p.id !== id));
+    setDeleting(null);
   };
 
   const handleLogout = async () => {
-    await supabase?.auth.signOut();
+    await supabase.auth.signOut();
     navigate("/admin/login", { replace: true });
   };
 
-  const filtered = productos.filter(
-    (p) =>
+  const filtered = productos.filter((p) => {
+    const matchCategoria =
+      categoriaActiva === "Todas" || p.categoria === categoriaActiva;
+    const matchBusqueda =
       busqueda === "" ||
       p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      p.categoria.toLowerCase().includes(busqueda.toLowerCase())
-  );
+      p.categoria.toLowerCase().includes(busqueda.toLowerCase());
+    return matchCategoria && matchBusqueda;
+  });
+
+  const categoriaCounts = productos.reduce<Record<string, number>>((acc, p) => {
+    acc[p.categoria] = (acc[p.categoria] || 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <div className="pt-28 sm:pt-36 pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <motion.div
           variants={stagger}
           initial="hidden"
@@ -135,7 +120,36 @@ export default function Dashboard() {
           </motion.div>
         </motion.div>
 
-        {/* Search */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-wrap gap-1.5 sm:gap-2 mb-4"
+        >
+          {CATEGORIAS.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setCategoriaActiva(cat)}
+              className={`px-3 py-1.5 text-xs font-medium tracking-wide rounded-sm border transition-colors duration-200 ${
+                categoriaActiva === cat
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-border bg-transparent text-text-secondary hover:border-text-secondary"
+              }`}
+            >
+              {cat}
+              {cat !== "Todas" && categoriaCounts[cat] ? (
+                <span className="ml-1.5 text-[10px] opacity-60">
+                  {categoriaCounts[cat]}
+                </span>
+              ) : cat === "Todas" ? (
+                <span className="ml-1.5 text-[10px] opacity-60">
+                  {productos.length}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -157,7 +171,6 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Table */}
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -202,17 +215,16 @@ export default function Dashboard() {
                   >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-card rounded-sm border border-border flex items-center justify-center shrink-0">
-                          <span className="text-xs font-bold text-text-muted/40">
-                            {producto.nombre
-                              .split(" ")
-                              .filter(
-                                (w) => w.length > 1 && w[0] !== '"'
-                              )
-                              .slice(0, 2)
-                              .map((w) => w[0])
-                              .join("")}
-                          </span>
+                        <div className="w-10 h-10 bg-card rounded-sm border border-border flex items-center justify-center shrink-0 overflow-hidden">
+                          {producto.imagen_url ? (
+                            <img
+                              src={producto.imagen_url}
+                              alt={producto.nombre}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <ImageIcon size={14} className="text-text-muted/40" />
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-medium text-text-primary line-clamp-1">
@@ -295,4 +307,11 @@ export default function Dashboard() {
       </div>
     </div>
   );
+}
+
+function extractStoragePath(url: string): string | null {
+  const marker = "/storage/v1/object/public/productos/";
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  return url.slice(idx + marker.length);
 }

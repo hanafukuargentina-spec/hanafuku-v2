@@ -19,7 +19,6 @@ export default function Login() {
     setLoading(true);
 
     try {
-      if (!supabase) { setError("Supabase no configurado."); setLoading(false); return; }
       const { error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -45,7 +44,6 @@ export default function Login() {
         animate="visible"
         className="w-full max-w-sm"
       >
-        {/* Logo */}
         <motion.div variants={fadeInUp} className="text-center mb-8">
           <h1 className="text-xl font-bold tracking-[0.25em] text-text-primary mb-2">
             HANAFUKU
@@ -53,7 +51,6 @@ export default function Login() {
           <p className="text-sm text-text-secondary">Panel de Administracion</p>
         </motion.div>
 
-        {/* Form */}
         <motion.form
           variants={fadeInUp}
           onSubmit={handleSubmit}

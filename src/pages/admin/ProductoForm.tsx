@@ -1,9 +1,9 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent, type ChangeEvent } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
-import { supabase, type DbProducto } from "../../lib/supabase";
-import { productosData, CATEGORIAS } from "../../data/productos.data";
+import { ArrowLeft, Save, Loader2, Upload, X, ImageIcon } from "lucide-react";
+import { supabase, uploadImage, type DbProducto } from "../../lib/supabase";
+import { CATEGORIAS } from "../../data/productos.data";
 import { fadeInUp, stagger } from "../../lib/motion";
 
 const TALLAS_OPTIONS = ["XS", "S", "M", "L", "XL", "Unica"];
@@ -29,7 +29,8 @@ interface FormData {
   colores: string[];
   descripcion: string;
   caracteristicas: string;
-  imagen_url: string;
+  imagen_principal_url: string;
+  galeria_urls: string[];
 }
 
 const emptyForm: FormData = {
@@ -44,72 +45,59 @@ const emptyForm: FormData = {
   colores: [],
   descripcion: "",
   caracteristicas: "",
-  imagen_url: "",
+  imagen_principal_url: "",
+  galeria_urls: [],
 };
 
 export default function ProductoForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = !!id;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<FormData>(emptyForm);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(isEditing);
   const [error, setError] = useState("");
 
+  const [mainImageFile, setMainImageFile] = useState<File | null>(null);
+  const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
+
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+
   useEffect(() => {
     if (!isEditing) return;
 
     async function fetchProducto() {
-      if (!supabase) { setLoading(false); return; }
-      try {
-        const { data, error: fetchError } = await supabase
-          .from("productos")
-          .select("*")
-          .eq("id", id)
-          .single();
+      const { data, error: fetchError } = await supabase
+        .from("productos")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-        if (fetchError || !data) {
-          // Fallback to local data
-          const local = productosData.find((p) => p.id === id);
-          if (local) {
-            setForm({
-              nombre: local.nombre,
-              subtitulo: local.subtitulo,
-              categoria: local.categoria,
-              precio_original: local.precioOriginal,
-              precio_actual: local.precioActual,
-              descuento: local.descuento,
-              stock: local.stock,
-              tallas: local.tallas,
-              colores: local.colores,
-              descripcion: local.descripcion,
-              caracteristicas: local.caracteristicas.join("\n"),
-              imagen_url: local.imagen_url || "",
-            });
-          }
-        } else {
-          const db = data as DbProducto;
-          setForm({
-            nombre: db.nombre,
-            subtitulo: db.subtitulo,
-            categoria: db.categoria,
-            precio_original: db.precio_original,
-            precio_actual: db.precio_actual,
-            descuento: db.descuento,
-            stock: db.stock,
-            tallas: db.tallas,
-            colores: db.colores,
-            descripcion: db.descripcion,
-            caracteristicas: db.caracteristicas.join("\n"),
-            imagen_url: db.imagen_url || "",
-          });
-        }
-      } catch {
-        // Silently fail
-      } finally {
-        setFetching(false);
+      if (!fetchError && data) {
+        const db = data as DbProducto;
+        setForm({
+          nombre: db.nombre,
+          subtitulo: db.subtitulo ?? "",
+          categoria: db.categoria,
+          precio_original: db.precio_original ?? 0,
+          precio_actual: db.precio_actual ?? 0,
+          descuento: db.descuento ?? 0,
+          stock: db.stock,
+          tallas: db.tallas,
+          colores: db.colores,
+          descripcion: db.descripcion ?? "",
+          caracteristicas: db.caracteristicas.join("\n"),
+          imagen_principal_url: db.imagen_principal ?? "",
+          galeria_urls: db.galeria ?? [],
+        });
+        if (db.imagen_principal) setMainImagePreview(db.imagen_principal);
+        if (db.galeria) setGalleryPreviews(db.galeria);
       }
+      setFetching(false);
     }
 
     fetchProducto();
@@ -133,60 +121,104 @@ export default function ProductoForm() {
     }));
   };
 
+  const handleMainImage = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMainImageFile(file);
+    setMainImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleGalleryImages = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newFiles = Array.from(files);
+    setGalleryFiles((prev) => [...prev, ...newFiles]);
+    setGalleryPreviews((prev) => [...prev, ...newFiles.map((f) => URL.createObjectURL(f))]);
+  };
+
+  const removeGalleryImage = (index: number) => {
+    const isExisting = index < form.galeria_urls.length;
+    if (isExisting) {
+      setForm((prev) => ({
+        ...prev,
+        galeria_urls: prev.galeria_urls.filter((_, i) => i !== index),
+      }));
+      setGalleryPreviews((prev) => prev.filter((_, i) => i !== index));
+    } else {
+      const fileIndex = index - form.galeria_urls.length;
+      setGalleryFiles((prev) => prev.filter((_, i) => i !== fileIndex));
+      setGalleryPreviews((prev) => prev.filter((_, i) => i !== index));
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const payload = {
-      nombre: form.nombre,
-      subtitulo: form.subtitulo,
-      categoria: form.categoria,
-      precio_original: form.precio_original,
-      precio_actual: form.precio_actual,
-      descuento: form.descuento,
-      rating: 0,
-      total_opiniones: 0,
-      vendidos: 0,
-      stock: form.stock,
-      tallas: form.tallas,
-      colores: form.colores,
-      descripcion: form.descripcion,
-      caracteristicas: form.caracteristicas
-        .split("\n")
-        .filter((c) => c.trim() !== ""),
-      imagen_url: form.imagen_url || null,
-      imagenes: null,
-    };
-
     try {
-      if (!supabase) { setError("Supabase no configurado."); setLoading(false); return; }
+      const productId = isEditing ? id! : crypto.randomUUID();
+
+      let imagenPrincipalUrl = form.imagen_principal_url;
+      if (mainImageFile) {
+        const ext = mainImageFile.name.split(".").pop();
+        const path = `${productId}/principal.${ext}`;
+        imagenPrincipalUrl = await uploadImage(mainImageFile, path);
+      }
+
+      const existingGaleria = form.galeria_urls;
+      const newGaleriaUrls: string[] = [];
+      for (let i = 0; i < galleryFiles.length; i++) {
+        const file = galleryFiles[i];
+        const ext = file.name.split(".").pop();
+        const path = `${productId}/galeria-${Date.now()}-${i}.${ext}`;
+        const url = await uploadImage(file, path);
+        newGaleriaUrls.push(url);
+      }
+      const galeriaFinal = [...existingGaleria, ...newGaleriaUrls];
+
+      const payload = {
+        nombre: form.nombre,
+        subtitulo: form.subtitulo,
+        categoria: form.categoria,
+        precio_original: form.precio_original,
+        precio_actual: form.precio_actual,
+        descuento: form.descuento,
+        stock: form.stock,
+        tallas: form.tallas,
+        colores: form.colores,
+        descripcion: form.descripcion,
+        caracteristicas: form.caracteristicas
+          .split("\n")
+          .filter((c) => c.trim() !== ""),
+        imagen_principal: imagenPrincipalUrl || null,
+        galeria: galeriaFinal,
+      };
+
       if (isEditing) {
         const { error: updateError } = await supabase
           .from("productos")
           .update(payload)
           .eq("id", id);
-
         if (updateError) {
-          setError("Error al actualizar el producto: " + updateError.message);
+          setError("Error al actualizar: " + updateError.message);
           setLoading(false);
           return;
         }
       } else {
         const { error: insertError } = await supabase
           .from("productos")
-          .insert(payload);
-
+          .insert({ id: productId, ...payload });
         if (insertError) {
-          setError("Error al crear el producto: " + insertError.message);
+          setError("Error al crear: " + insertError.message);
           setLoading(false);
           return;
         }
       }
 
       navigate("/admin/dashboard", { replace: true });
-    } catch {
-      setError("Error inesperado. Intenta nuevamente.");
+    } catch (err) {
+      setError("Error inesperado: " + (err instanceof Error ? err.message : "Intenta nuevamente."));
     } finally {
       setLoading(false);
     }
@@ -205,7 +237,6 @@ export default function ProductoForm() {
   return (
     <div className="pt-28 sm:pt-36 pb-20">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Back */}
         <Link
           to="/admin/dashboard"
           className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-accent transition-colors mb-6"
@@ -237,6 +268,88 @@ export default function ProductoForm() {
               </div>
             )}
 
+            {/* Main Image */}
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-2">
+                Imagen principal
+              </label>
+              <div className="flex items-start gap-4">
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-32 h-32 bg-background border border-dashed border-border rounded-sm flex items-center justify-center cursor-pointer hover:border-accent/50 transition-colors overflow-hidden shrink-0"
+                >
+                  {mainImagePreview ? (
+                    <img
+                      src={mainImagePreview}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <Upload size={20} className="mx-auto text-text-muted mb-1" />
+                      <p className="text-[10px] text-text-muted">Subir imagen</p>
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleMainImage}
+                  className="hidden"
+                />
+                {mainImagePreview && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMainImagePreview(null);
+                      setMainImageFile(null);
+                      setForm((prev) => ({ ...prev, imagen_principal_url: "" }));
+                    }}
+                    className="p-1.5 text-text-muted hover:text-danger transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Gallery */}
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-2">
+                Galeria de imagenes
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {galleryPreviews.map((url, i) => (
+                  <div key={i} className="relative w-20 h-20 rounded-sm overflow-hidden border border-border">
+                    <img src={url} alt={`Galeria ${i + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeGalleryImage(i)}
+                      className="absolute top-0.5 right-0.5 w-5 h-5 bg-background/80 rounded-full flex items-center justify-center text-text-muted hover:text-danger transition-colors"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="w-20 h-20 border border-dashed border-border rounded-sm flex items-center justify-center hover:border-accent/50 transition-colors"
+                >
+                  <ImageIcon size={16} className="text-text-muted" />
+                </button>
+              </div>
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleGalleryImages}
+                className="hidden"
+              />
+            </div>
+
             {/* Name */}
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1.5">
@@ -245,9 +358,7 @@ export default function ProductoForm() {
               <input
                 type="text"
                 value={form.nombre}
-                onChange={(e) =>
-                  setForm({ ...form, nombre: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                 required
                 placeholder='Remera Oversize "Killua"'
                 className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
@@ -262,9 +373,7 @@ export default function ProductoForm() {
               <input
                 type="text"
                 value={form.subtitulo}
-                onChange={(e) =>
-                  setForm({ ...form, subtitulo: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, subtitulo: e.target.value })}
                 required
                 placeholder="Edicion limitada con estampado electrico"
                 className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
@@ -278,15 +387,11 @@ export default function ProductoForm() {
               </label>
               <select
                 value={form.categoria}
-                onChange={(e) =>
-                  setForm({ ...form, categoria: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, categoria: e.target.value })}
                 className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
               >
                 {categorias.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
+                  <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
             </div>
@@ -300,12 +405,7 @@ export default function ProductoForm() {
                 <input
                   type="number"
                   value={form.precio_original || ""}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      precio_original: Number(e.target.value),
-                    })
-                  }
+                  onChange={(e) => setForm({ ...form, precio_original: Number(e.target.value) })}
                   required
                   min={0}
                   className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
@@ -318,12 +418,7 @@ export default function ProductoForm() {
                 <input
                   type="number"
                   value={form.precio_actual || ""}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      precio_actual: Number(e.target.value),
-                    })
-                  }
+                  onChange={(e) => setForm({ ...form, precio_actual: Number(e.target.value) })}
                   required
                   min={0}
                   className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
@@ -336,12 +431,7 @@ export default function ProductoForm() {
                 <input
                   type="number"
                   value={form.descuento || ""}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      descuento: Number(e.target.value),
-                    })
-                  }
+                  onChange={(e) => setForm({ ...form, descuento: Number(e.target.value) })}
                   min={0}
                   max={100}
                   className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
@@ -357,9 +447,7 @@ export default function ProductoForm() {
               <input
                 type="number"
                 value={form.stock || ""}
-                onChange={(e) =>
-                  setForm({ ...form, stock: Number(e.target.value) })
-                }
+                onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
                 required
                 min={0}
                 className="w-full sm:w-32 px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
@@ -419,9 +507,7 @@ export default function ProductoForm() {
               </label>
               <textarea
                 value={form.descripcion}
-                onChange={(e) =>
-                  setForm({ ...form, descripcion: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
                 required
                 rows={4}
                 placeholder="Descripcion detallada del producto..."
@@ -436,28 +522,10 @@ export default function ProductoForm() {
               </label>
               <textarea
                 value={form.caracteristicas}
-                onChange={(e) =>
-                  setForm({ ...form, caracteristicas: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, caracteristicas: e.target.value })}
                 rows={4}
                 placeholder={"Algodon 100% peinado\nCorte oversize\nEstampado serigrafico"}
                 className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors resize-none"
-              />
-            </div>
-
-            {/* Image URL */}
-            <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5">
-                URL de imagen (opcional)
-              </label>
-              <input
-                type="url"
-                value={form.imagen_url}
-                onChange={(e) =>
-                  setForm({ ...form, imagen_url: e.target.value })
-                }
-                placeholder="https://..."
-                className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
               />
             </div>
 

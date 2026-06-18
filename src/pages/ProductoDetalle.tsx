@@ -9,8 +9,8 @@ import {
   Shield,
   RotateCcw,
 } from "lucide-react";
-import { productosData, formatPrice } from "../data/productos.data";
-import { supabase, mapDbProducto, type DbProducto } from "../lib/supabase";
+import { formatPrice } from "../data/productos.data";
+import { supabase, mapDbToProducto, type DbProducto } from "../lib/supabase";
 import type { Producto } from "../types";
 import SizeSelector from "../components/SizeSelector";
 import ProductCard from "../components/ProductCard";
@@ -26,32 +26,33 @@ export default function ProductoDetalle() {
   const [selectedTalla, setSelectedTalla] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [added, setAdded] = useState(false);
+  const [related, setRelated] = useState<Producto[]>([]);
 
   useEffect(() => {
     async function fetchProducto() {
       setLoading(true);
-      if (!supabase) {
-        setProducto(productosData.find((p) => p.id === id) || null);
-        setLoading(false);
-        return;
-      }
-      try {
-        const { data, error } = await supabase
+      const { data, error } = await supabase
+        .from("productos")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (!error && data) {
+        const prod = mapDbToProducto(data as DbProducto);
+        setProducto(prod);
+
+        const { data: relData } = await supabase
           .from("productos")
           .select("*")
-          .eq("id", id)
-          .single();
+          .eq("categoria", prod.categoria)
+          .neq("id", prod.id)
+          .limit(4);
 
-        if (error || !data) {
-          setProducto(productosData.find((p) => p.id === id) || null);
-        } else {
-          setProducto(mapDbProducto(data as DbProducto));
-        }
-      } catch {
-        setProducto(productosData.find((p) => p.id === id) || null);
-      } finally {
-        setLoading(false);
+        if (relData) setRelated((relData as DbProducto[]).map(mapDbToProducto));
+      } else {
+        setProducto(null);
       }
+      setLoading(false);
     }
 
     fetchProducto();
@@ -77,10 +78,6 @@ export default function ProductoDetalle() {
     addItem(producto, selectedTalla);
     navigate("/checkout");
   };
-
-  const related = productosData
-    .filter((p) => p.categoria === producto?.categoria && p.id !== producto?.id)
-    .slice(0, 4);
 
   if (loading) {
     return (
@@ -121,7 +118,6 @@ export default function ProductoDetalle() {
   return (
     <div className="pt-28 sm:pt-36 pb-16 sm:pb-20">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
-        {/* Back link */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -138,7 +134,6 @@ export default function ProductoDetalle() {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14">
-          {/* Image gallery */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -146,9 +141,17 @@ export default function ProductoDetalle() {
             className="space-y-2.5"
           >
             <div className="aspect-square bg-card rounded-sm border border-border flex items-center justify-center relative overflow-hidden">
-              <span className="text-6xl sm:text-8xl font-bold text-text-muted/10 tracking-wider select-none">
-                {initials}
-              </span>
+              {producto.imagen_url ? (
+                <img
+                  src={producto.imagen_url}
+                  alt={producto.nombre}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-6xl sm:text-8xl font-bold text-text-muted/10 tracking-wider select-none">
+                  {initials}
+                </span>
+              )}
 
               {producto.descuento > 0 && (
                 <div className="absolute top-3 left-3 bg-accent text-background text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-sm">
@@ -157,23 +160,35 @@ export default function ProductoDetalle() {
               )}
             </div>
 
-            <div className="grid grid-cols-4 gap-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`aspect-square bg-card rounded-sm border flex items-center justify-center ${
-                    i === 0 ? "border-accent" : "border-border"
-                  }`}
-                >
-                  <span className="text-xs font-bold text-text-muted/15 select-none">
-                    {i + 1}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {producto.imagenes && producto.imagenes.length > 0 ? (
+              <div className="grid grid-cols-4 gap-2">
+                {producto.imagenes.slice(0, 4).map((img, i) => (
+                  <div
+                    key={i}
+                    className="aspect-square bg-card rounded-sm border border-border overflow-hidden"
+                  >
+                    <img src={img} alt={`${producto.nombre} ${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`aspect-square bg-card rounded-sm border flex items-center justify-center ${
+                      i === 0 ? "border-accent" : "border-border"
+                    }`}
+                  >
+                    <span className="text-xs font-bold text-text-muted/15 select-none">
+                      {i + 1}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
 
-          {/* Product info */}
           <motion.div
             variants={stagger}
             initial="hidden"
@@ -202,7 +217,6 @@ export default function ProductoDetalle() {
               {producto.subtitulo}
             </motion.p>
 
-            {/* Rating */}
             <motion.div
               variants={fadeInUp}
               className="flex items-center gap-1.5 sm:gap-2 mt-3 flex-wrap"
@@ -231,7 +245,6 @@ export default function ProductoDetalle() {
               </span>
             </motion.div>
 
-            {/* Price */}
             <motion.div
               variants={fadeInUp}
               className="flex items-baseline gap-2.5 mt-4"
@@ -251,7 +264,6 @@ export default function ProductoDetalle() {
 
             <motion.hr variants={fadeInUp} className="border-border my-5" />
 
-            {/* Color selector */}
             {producto.colores.length > 0 && (
               <motion.div variants={fadeInUp} className="mb-4">
                 <p className="text-xs font-medium text-text-primary mb-2">
@@ -278,7 +290,6 @@ export default function ProductoDetalle() {
               </motion.div>
             )}
 
-            {/* Size selector */}
             <motion.div variants={fadeInUp} className="mb-5">
               <p className="text-xs font-medium text-text-primary mb-2">
                 Talla:{" "}
@@ -293,7 +304,6 @@ export default function ProductoDetalle() {
               />
             </motion.div>
 
-            {/* CTAs */}
             <motion.div variants={fadeInUp} className="flex flex-col gap-2">
               <button
                 onClick={handleBuyNow}
@@ -331,7 +341,6 @@ export default function ProductoDetalle() {
               </motion.p>
             )}
 
-            {/* Trust badges */}
             <motion.div
               variants={fadeInUp}
               className="grid grid-cols-3 gap-2 sm:gap-3 mt-6 pt-5 border-t border-border"
@@ -342,18 +351,12 @@ export default function ProductoDetalle() {
                 { icon: RotateCcw, text: "Cambio gratis" },
               ].map(({ icon: Icon, text }) => (
                 <div key={text} className="text-center">
-                  <Icon
-                    size={16}
-                    className="mx-auto text-text-muted mb-1"
-                  />
-                  <p className="text-[10px] text-text-muted leading-tight">
-                    {text}
-                  </p>
+                  <Icon size={16} className="mx-auto text-text-muted mb-1" />
+                  <p className="text-[10px] text-text-muted leading-tight">{text}</p>
                 </div>
               ))}
             </motion.div>
 
-            {/* Description */}
             <motion.div variants={fadeInUp} className="mt-6">
               <h3 className="text-xs font-semibold text-text-primary mb-2">
                 Descripcion
@@ -363,7 +366,6 @@ export default function ProductoDetalle() {
               </p>
             </motion.div>
 
-            {/* Characteristics */}
             <motion.div variants={fadeInUp} className="mt-5">
               <h3 className="text-xs font-semibold text-text-primary mb-2">
                 Caracteristicas
@@ -383,7 +385,6 @@ export default function ProductoDetalle() {
           </motion.div>
         </div>
 
-        {/* Reviews */}
         {producto.reviews.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -431,7 +432,6 @@ export default function ProductoDetalle() {
           </motion.div>
         )}
 
-        {/* Related products */}
         {related.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}

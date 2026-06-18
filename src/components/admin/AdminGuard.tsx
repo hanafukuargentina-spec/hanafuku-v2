@@ -12,35 +12,19 @@ export default function AdminGuard({ children }: AdminGuardProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!supabase) {
-      navigate("/admin/login", { replace: true });
-      setLoading(false);
-      return;
-    }
-
     async function checkAuth() {
-      try {
-        const {
-          data: { session },
-        } = await supabase!.auth.getSession();
-
-        if (session) {
-          setAuthenticated(true);
-        } else {
-          navigate("/admin/login", { replace: true });
-        }
-      } catch {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setAuthenticated(true);
+      } else {
         navigate("/admin/login", { replace: true });
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     }
 
     checkAuth();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         setAuthenticated(false);
         navigate("/admin/login", { replace: true });

@@ -1,12 +1,29 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { productosData } from "../data/productos.data";
+import { supabase, mapDbToProducto, type DbProducto } from "../lib/supabase";
+import type { Producto } from "../types";
 import ProductCard from "./ProductCard";
 import { fadeInUp, stagger } from "../lib/motion";
 
 export default function ProductosSection() {
-  const featured = productosData.slice(0, 4);
+  const [productos, setProductos] = useState<Producto[]>([]);
+
+  useEffect(() => {
+    async function fetch() {
+      const { data } = await supabase
+        .from("productos")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(4);
+
+      if (data) setProductos((data as DbProducto[]).map(mapDbToProducto));
+    }
+    fetch();
+  }, []);
+
+  if (productos.length === 0) return null;
 
   return (
     <section className="py-16 sm:py-24">
@@ -40,7 +57,7 @@ export default function ProductosSection() {
           viewport={{ once: true, margin: "-30px" }}
           className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5"
         >
-          {featured.map((producto) => (
+          {productos.map((producto) => (
             <ProductCard key={producto.id} producto={producto} />
           ))}
         </motion.div>
