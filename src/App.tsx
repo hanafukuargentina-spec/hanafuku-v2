@@ -4,6 +4,7 @@ import TopBanner from "./components/TopBanner";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import CartDrawer from "./components/CartDrawer";
+import PromoPopup from "./components/PromoPopup";
 import Index from "./pages/Index";
 
 const Coleccion = lazy(() => import("./pages/Coleccion"));
@@ -29,6 +30,7 @@ function App() {
       <TopBanner />
       <Header />
       <CartDrawer />
+      <PromoPopup />
       <main className="flex-1">
         <Suspense fallback={<Loader />}>
           <Routes>
