@@ -22,11 +22,16 @@ export default function Index() {
           >
             <motion.div
               variants={fadeInUp}
-              className="aspect-[4/3] sm:aspect-square bg-background rounded-sm border border-border flex items-center justify-center order-2 lg:order-1"
+              className="aspect-[4/3] sm:aspect-square bg-background rounded-sm border border-border overflow-hidden order-2 lg:order-1"
             >
-              <span className="text-5xl sm:text-6xl font-bold text-text-muted/10 tracking-[0.3em] select-none">
-                HF
-              </span>
+              <video
+                src="/Video hero.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
             </motion.div>
 
             <motion.div
