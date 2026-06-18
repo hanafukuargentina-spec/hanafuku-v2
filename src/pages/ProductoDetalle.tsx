@@ -141,9 +141,9 @@ export default function ProductoDetalle() {
             className="space-y-2.5"
           >
             <div className="aspect-square bg-card rounded-sm border border-border flex items-center justify-center relative overflow-hidden">
-              {producto.imagen_url ? (
+              {producto.imagen_principal ? (
                 <img
-                  src={producto.imagen_url}
+                  src={producto.imagen_principal}
                   alt={producto.nombre}
                   className="w-full h-full object-cover"
                 />
@@ -160,9 +160,9 @@ export default function ProductoDetalle() {
               )}
             </div>
 
-            {producto.imagenes && producto.imagenes.length > 0 ? (
+            {producto.galeria && producto.galeria.length > 0 ? (
               <div className="grid grid-cols-4 gap-2">
-                {producto.imagenes.slice(0, 4).map((img, i) => (
+                {producto.galeria.slice(0, 4).map((img, i) => (
                   <div
                     key={i}
                     className="aspect-square bg-card rounded-sm border border-border overflow-hidden"

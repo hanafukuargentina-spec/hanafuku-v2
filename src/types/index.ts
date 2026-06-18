@@ -22,8 +22,8 @@ export interface Producto {
   colores: string[];
   descripcion: string;
   caracteristicas: string[];
-  imagen_url?: string;
-  imagenes?: string[];
+  imagen_principal?: string;
+  galeria?: string[];
   reviews: Review[];
 }
 

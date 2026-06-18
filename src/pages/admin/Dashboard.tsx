@@ -47,12 +47,12 @@ export default function Dashboard() {
     setDeleting(id);
 
     const producto = productos.find((p) => p.id === id);
-    if (producto?.imagen_url) {
-      const path = extractStoragePath(producto.imagen_url);
+    if (producto?.imagen_principal) {
+      const path = extractStoragePath(producto.imagen_principal);
       if (path) await supabase.storage.from("productos").remove([path]);
     }
-    if (producto?.imagenes) {
-      const paths = producto.imagenes.map(extractStoragePath).filter(Boolean) as string[];
+    if (producto?.galeria) {
+      const paths = producto.galeria.map(extractStoragePath).filter(Boolean) as string[];
       if (paths.length > 0) await supabase.storage.from("productos").remove(paths);
     }
 
@@ -216,9 +216,9 @@ export default function Dashboard() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-card rounded-sm border border-border flex items-center justify-center shrink-0 overflow-hidden">
-                          {producto.imagen_url ? (
+                          {producto.imagen_principal ? (
                             <img
-                              src={producto.imagen_url}
+                              src={producto.imagen_principal}
                               alt={producto.nombre}
                               className="w-full h-full object-cover"
                             />

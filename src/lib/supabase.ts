@@ -25,6 +25,7 @@ export interface DbProducto {
 }
 
 export function mapDbToProducto(db: DbProducto): Producto {
+  const galeria = db.galeria ?? [];
   return {
     id: db.id,
     nombre: db.nombre,
@@ -37,12 +38,12 @@ export function mapDbToProducto(db: DbProducto): Producto {
     totalOpiniones: 0,
     vendidos: 0,
     stock: db.stock,
-    tallas: db.tallas,
-    colores: db.colores,
+    tallas: db.tallas ?? [],
+    colores: db.colores ?? [],
     descripcion: db.descripcion ?? "",
-    caracteristicas: db.caracteristicas,
-    imagen_url: db.imagen_principal ?? undefined,
-    imagenes: db.galeria.length > 0 ? db.galeria : undefined,
+    caracteristicas: db.caracteristicas ?? [],
+    imagen_principal: db.imagen_principal ?? undefined,
+    galeria: galeria.length > 0 ? galeria : undefined,
     reviews: [],
   };
 }

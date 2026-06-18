@@ -22,9 +22,9 @@ export default function ProductCard({ producto }: ProductCardProps) {
       <Link to={`/producto/${producto.id}`} className="block">
         <div className="relative aspect-[3/4] bg-card rounded-sm overflow-hidden border border-border group-hover:border-accent/40 transition-colors duration-200">
           <div className="absolute inset-0 flex items-center justify-center">
-            {producto.imagen_url ? (
+            {producto.imagen_principal ? (
               <img
-                src={producto.imagen_url}
+                src={producto.imagen_principal}
                 alt={producto.nombre}
                 className="w-full h-full object-cover"
               />
