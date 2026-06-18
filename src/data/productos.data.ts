@@ -46,6 +46,7 @@ export const productosData: Producto[] = [
       "Costuras reforzadas",
       "Etiqueta tejida HANAFUKU",
     ],
+    estado_stock: "disponible",
     reviews: [
       {
         id: "r1",
@@ -87,6 +88,7 @@ export const productosData: Producto[] = [
       "Bolsillo canguro reforzado",
       "Puños y cintura con rib elástico",
     ],
+    estado_stock: "disponible",
     reviews: [
       {
         id: "r3",
@@ -120,6 +122,7 @@ export const productosData: Producto[] = [
       "Cintura con elástico interno",
       "Costuras reforzadas triple puntada",
     ],
+    estado_stock: "disponible",
     reviews: [
       {
         id: "r4",
@@ -153,6 +156,7 @@ export const productosData: Producto[] = [
       "Cuello reforzado sin deformación",
       "Diseño exclusivo de artista local",
     ],
+    estado_stock: "disponible",
     reviews: [
       {
         id: "r5",
@@ -187,6 +191,7 @@ export const productosData: Producto[] = [
       "Bolsillo interno para celular",
       "Logo HANAFUKU bordado en manga",
     ],
+    estado_stock: "disponible",
     reviews: [
       {
         id: "r6",
@@ -221,6 +226,7 @@ export const productosData: Producto[] = [
       "Hebilla metálica de ajuste",
       "Talle único ajustable",
     ],
+    estado_stock: "disponible",
     reviews: [
       {
         id: "r7",

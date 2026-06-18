@@ -19,6 +19,7 @@ create table if not exists productos (
   caracteristicas text[] default '{}',
   imagen_principal text,
   galeria text[] default '{}',
+  estado_stock text default 'disponible' check (estado_stock in ('disponible', 'reposicion')),
   created_at timestamptz default now()
 );
 

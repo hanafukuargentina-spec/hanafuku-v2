@@ -35,6 +35,12 @@ export default function ProductCard({ producto }: ProductCardProps) {
             )}
           </div>
 
+          {producto.estado_stock === "reposicion" && (
+            <div className="absolute top-0 left-0 right-0 bg-accent text-background text-[10px] sm:text-[11px] font-semibold text-center py-1 tracking-wider uppercase z-10">
+              En reposicion
+            </div>
+          )}
+
           {producto.descuento > 0 && (
             <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 bg-accent text-background text-[11px] sm:text-xs font-semibold px-2 py-0.5 sm:py-1 rounded-sm">
               -{producto.descuento}%

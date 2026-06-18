@@ -31,6 +31,7 @@ interface FormData {
   caracteristicas: string;
   imagen_principal_url: string;
   galeria_urls: string[];
+  estado_stock: "disponible" | "reposicion";
 }
 
 const emptyForm: FormData = {
@@ -47,6 +48,7 @@ const emptyForm: FormData = {
   caracteristicas: "",
   imagen_principal_url: "",
   galeria_urls: [],
+  estado_stock: "disponible",
 };
 
 export default function ProductoForm() {
@@ -93,6 +95,7 @@ export default function ProductoForm() {
           caracteristicas: db.caracteristicas.join("\n"),
           imagen_principal_url: db.imagen_principal ?? "",
           galeria_urls: db.galeria ?? [],
+          estado_stock: db.estado_stock === "reposicion" ? "reposicion" : "disponible",
         });
         if (db.imagen_principal) setMainImagePreview(db.imagen_principal);
         if (db.galeria) setGalleryPreviews(db.galeria);
@@ -193,6 +196,7 @@ export default function ProductoForm() {
           .filter((c) => c.trim() !== ""),
         imagen_principal: imagenPrincipalUrl || null,
         galeria: galeriaFinal,
+        estado_stock: form.estado_stock,
       };
 
       if (isEditing) {
@@ -452,6 +456,37 @@ export default function ProductoForm() {
                 min={0}
                 className="w-full sm:w-32 px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-text-primary focus:outline-none focus:border-accent/50 transition-colors"
               />
+            </div>
+
+            {/* Estado stock */}
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-2">
+                Estado de stock
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, estado_stock: "disponible" })}
+                  className={`px-4 h-9 text-xs font-medium border rounded-sm transition-all duration-200 ${
+                    form.estado_stock === "disponible"
+                      ? "border-success bg-success/10 text-success"
+                      : "border-border bg-transparent text-text-secondary hover:border-text-secondary"
+                  }`}
+                >
+                  Hay stock
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, estado_stock: "reposicion" })}
+                  className={`px-4 h-9 text-xs font-medium border rounded-sm transition-all duration-200 ${
+                    form.estado_stock === "reposicion"
+                      ? "border-accent bg-accent/10 text-accent"
+                      : "border-border bg-transparent text-text-secondary hover:border-text-secondary"
+                  }`}
+                >
+                  En reposicion
+                </button>
+              </div>
             </div>
 
             {/* Tallas */}

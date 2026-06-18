@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -27,6 +27,10 @@ export default function ProductoDetalle() {
   const [selectedColor, setSelectedColor] = useState("");
   const [added, setAdded] = useState(false);
   const [related, setRelated] = useState<Producto[]>([]);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const zoomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchProducto() {
@@ -63,6 +67,7 @@ export default function ProductoDetalle() {
     if (producto) {
       setSelectedTalla(producto.tallas[0] || "");
       setSelectedColor(producto.colores[0] || "");
+      setSelectedImage(producto.imagen_principal || null);
     }
   }, [producto]);
 
@@ -140,12 +145,28 @@ export default function ProductoDetalle() {
             transition={{ duration: 0.3 }}
             className="space-y-2.5"
           >
-            <div className="aspect-square bg-card rounded-sm border border-border flex items-center justify-center relative overflow-hidden">
-              {producto.imagen_principal ? (
+            <div
+              ref={zoomRef}
+              className="aspect-square bg-card rounded-sm border border-border flex items-center justify-center relative overflow-hidden cursor-zoom-in"
+              onMouseEnter={() => selectedImage && setIsZoomed(true)}
+              onMouseLeave={() => setIsZoomed(false)}
+              onMouseMove={(e: ReactMouseEvent<HTMLDivElement>) => {
+                if (!zoomRef.current) return;
+                const rect = zoomRef.current.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                setZoomPos({ x, y });
+              }}
+            >
+              {selectedImage ? (
                 <img
-                  src={producto.imagen_principal}
+                  src={selectedImage}
                   alt={producto.nombre}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-200"
+                  style={isZoomed ? {
+                    transform: "scale(2)",
+                    transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                  } : undefined}
                 />
               ) : (
                 <span className="text-6xl sm:text-8xl font-bold text-text-muted/10 tracking-wider select-none">
@@ -153,40 +174,44 @@ export default function ProductoDetalle() {
                 </span>
               )}
 
+              {producto.estado_stock === "reposicion" && (
+                <div className="absolute top-0 left-0 right-0 bg-accent text-background text-[11px] sm:text-xs font-semibold text-center py-1.5 tracking-wider uppercase z-10 pointer-events-none">
+                  En reposicion
+                </div>
+              )}
+
               {producto.descuento > 0 && (
-                <div className="absolute top-3 left-3 bg-accent text-background text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-sm">
+                <div className="absolute top-3 left-3 bg-accent text-background text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-sm pointer-events-none">
                   -{producto.descuento}%
                 </div>
               )}
             </div>
 
-            {producto.galeria && producto.galeria.length > 0 ? (
-              <div className="grid grid-cols-4 gap-2">
-                {producto.galeria.slice(0, 4).map((img, i) => (
-                  <div
-                    key={i}
-                    className="aspect-square bg-card rounded-sm border border-border overflow-hidden"
-                  >
-                    <img src={img} alt={`${producto.nombre} ${i + 1}`} className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-4 gap-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`aspect-square bg-card rounded-sm border flex items-center justify-center ${
-                      i === 0 ? "border-accent" : "border-border"
-                    }`}
-                  >
-                    <span className="text-xs font-bold text-text-muted/15 select-none">
-                      {i + 1}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+            {(() => {
+              const allImages = [
+                producto.imagen_principal,
+                ...(producto.galeria || []),
+              ].filter(Boolean) as string[];
+
+              if (allImages.length <= 1) return null;
+
+              return (
+                <div className="grid grid-cols-4 gap-2">
+                  {allImages.slice(0, 4).map((img, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setSelectedImage(img)}
+                      className={`aspect-square bg-card rounded-sm border overflow-hidden transition-colors duration-200 ${
+                        selectedImage === img ? "border-accent" : "border-border hover:border-text-muted"
+                      }`}
+                    >
+                      <img src={img} alt={`${producto.nombre} ${i + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
           </motion.div>
 
           <motion.div

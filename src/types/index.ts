@@ -24,6 +24,7 @@ export interface Producto {
   caracteristicas: string[];
   imagen_principal?: string;
   galeria?: string[];
+  estado_stock: "disponible" | "reposicion";
   reviews: Review[];
 }
 

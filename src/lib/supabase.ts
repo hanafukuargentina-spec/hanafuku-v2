@@ -21,6 +21,7 @@ export interface DbProducto {
   caracteristicas: string[];
   imagen_principal: string | null;
   galeria: string[];
+  estado_stock: string | null;
   created_at: string;
 }
 
@@ -44,6 +45,7 @@ export function mapDbToProducto(db: DbProducto): Producto {
     caracteristicas: db.caracteristicas ?? [],
     imagen_principal: db.imagen_principal ?? undefined,
     galeria: galeria.length > 0 ? galeria : undefined,
+    estado_stock: (db.estado_stock === "reposicion" ? "reposicion" : "disponible"),
     reviews: [],
   };
 }
