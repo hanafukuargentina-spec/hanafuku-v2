@@ -159,15 +159,18 @@ export default function ProductoDetalle() {
               }}
             >
               {selectedImage ? (
-                <img
-                  src={selectedImage}
-                  alt={producto.nombre}
-                  className="w-full h-full object-cover transition-transform duration-200"
-                  style={isZoomed ? {
-                    transform: "scale(2)",
-                    transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                  } : undefined}
-                />
+                <>
+                  <div className="absolute inset-0 bg-white pointer-events-none" />
+                  <img
+                    src={selectedImage}
+                    alt={producto.nombre}
+                    className="absolute inset-0 w-full h-full object-contain p-4 sm:p-6 z-[1] transition-transform duration-200"
+                    style={isZoomed ? {
+                      transform: "scale(2)",
+                      transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                    } : undefined}
+                  />
+                </>
               ) : (
                 <span className="text-6xl sm:text-8xl font-bold text-text-muted/10 tracking-wider select-none">
                   {initials}
@@ -202,11 +205,12 @@ export default function ProductoDetalle() {
                       key={i}
                       type="button"
                       onClick={() => setSelectedImage(img)}
-                      className={`aspect-square bg-card rounded-sm border overflow-hidden transition-colors duration-200 ${
+                      className={`aspect-square bg-card rounded-sm border overflow-hidden transition-colors duration-200 relative ${
                         selectedImage === img ? "border-accent" : "border-border hover:border-text-muted"
                       }`}
                     >
-                      <img src={img} alt={`${producto.nombre} ${i + 1}`} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-white" />
+                      <img src={img} alt={`${producto.nombre} ${i + 1}`} className="relative w-full h-full object-contain p-1.5 z-[1]" />
                     </button>
                   ))}
                 </div>

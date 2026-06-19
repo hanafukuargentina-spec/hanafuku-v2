@@ -21,19 +21,22 @@ export default function ProductCard({ producto }: ProductCardProps) {
     <motion.div variants={fadeInUp} className="group">
       <Link to={`/producto/${producto.id}`} className="block">
         <div className="relative aspect-[3/4] bg-card rounded-sm overflow-hidden border border-border group-hover:border-accent/40 transition-colors duration-200">
-          <div className="absolute inset-0 flex items-center justify-center">
-            {producto.imagen_principal ? (
+          {producto.imagen_principal ? (
+            <>
+              <div className="absolute inset-0 bg-white" />
               <img
                 src={producto.imagen_principal}
                 alt={producto.nombre}
-                className="w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-contain p-3 sm:p-4 z-[1]"
               />
-            ) : (
+            </>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-4xl sm:text-5xl font-bold text-text-muted/15 tracking-wider select-none">
                 {initials}
               </span>
-            )}
-          </div>
+            </div>
+          )}
 
           {producto.estado_stock === "reposicion" && (
             <div className="absolute top-0 left-0 right-0 bg-accent text-background text-[10px] sm:text-[11px] font-semibold text-center py-1 tracking-wider uppercase z-10">
