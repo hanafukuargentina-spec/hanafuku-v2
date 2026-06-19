@@ -165,7 +165,7 @@ export default function ProductoForm() {
       let imagenPrincipalUrl = form.imagen_principal_url;
       if (mainImageFile) {
         const ext = mainImageFile.name.split(".").pop();
-        const path = `${productId}/principal.${ext}`;
+        const path = `${productId}/principal-${Date.now()}.${ext}`;
         imagenPrincipalUrl = await uploadImage(mainImageFile, path);
       }
 
