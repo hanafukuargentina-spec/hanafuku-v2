@@ -3,6 +3,25 @@
 -- Correr en: Supabase Dashboard > SQL Editor
 -- =============================================
 
+-- MIGRATION: agregar columna slug
+-- alter table productos add column if not exists slug text unique;
+--
+-- update productos
+-- set slug = lower(
+--   regexp_replace(
+--     regexp_replace(
+--       translate(nombre,
+--         'áéíóúàèìòùäëïöüâêîôûñÁÉÍÓÚÀÈÌÒÙÄËÏÖÜÂÊÎÔÛÑ',
+--         'aeiouaeiouaeiouaeiounaeiouaeiouaeiouaeioun'
+--       ),
+--       '[^a-zA-Z0-9 ]', '', 'g'
+--     ),
+--     ' +', '-', 'g'
+--   )
+-- )
+-- where slug is null;
+-- ============================================
+
 -- 1. Tabla de productos
 create table if not exists productos (
   id uuid primary key default gen_random_uuid(),

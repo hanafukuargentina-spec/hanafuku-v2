@@ -25,6 +25,7 @@ export function formatPrice(price: number): string {
 export const productosData: Producto[] = [
   {
     id: "1",
+    slug: "remera-oversize-killua",
     nombre: 'Remera Oversize "Killua"',
     subtitulo: "Edición limitada con estampado eléctrico",
     categoria: "Remeras",
@@ -66,6 +67,7 @@ export const productosData: Producto[] = [
   },
   {
     id: "2",
+    slug: "buzo-hoodie-hunter-x-hunter",
     nombre: 'Buzo Hoodie "Hunter x Hunter"',
     subtitulo: "Hoodie premium con bordado frontal",
     categoria: "Buzos",
@@ -101,6 +103,7 @@ export const productosData: Producto[] = [
   },
   {
     id: "3",
+    slug: "pantalon-cargo-phantom",
     nombre: 'Pantalón Cargo "Phantom"',
     subtitulo: "Cargo táctico de corte recto",
     categoria: "Pantalones",
@@ -135,6 +138,7 @@ export const productosData: Producto[] = [
   },
   {
     id: "4",
+    slug: "remera-gon-freecss",
     nombre: 'Remera "Gon Freecss"',
     subtitulo: "Arte frontal con estilo manga",
     categoria: "Remeras",
@@ -169,6 +173,7 @@ export const productosData: Producto[] = [
   },
   {
     id: "5",
+    slug: "campera-zoldyck",
     nombre: 'Campera "Zoldyck"',
     subtitulo: "Campera técnica resistente al agua",
     categoria: "Camperas",
@@ -204,6 +209,7 @@ export const productosData: Producto[] = [
   },
   {
     id: "6",
+    slug: "gorra-hxh-logo",
     nombre: 'Gorra "HxH Logo"',
     subtitulo: "Gorra dad hat con bordado",
     categoria: "Accesorios",

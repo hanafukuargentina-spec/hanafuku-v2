@@ -18,7 +18,7 @@ import { useCart } from "../context/CartContext";
 import { fadeInUp, stagger } from "../lib/motion";
 
 export default function ProductoDetalle() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { addItem } = useCart();
   const [producto, setProducto] = useState<Producto | null>(null);
@@ -38,7 +38,7 @@ export default function ProductoDetalle() {
       const { data, error } = await supabase
         .from("productos")
         .select("*")
-        .eq("id", id)
+        .eq("slug", slug)
         .single();
 
       if (!error && data) {
@@ -61,7 +61,7 @@ export default function ProductoDetalle() {
 
     fetchProducto();
     window.scrollTo(0, 0);
-  }, [id]);
+  }, [slug]);
 
   useEffect(() => {
     if (producto) {

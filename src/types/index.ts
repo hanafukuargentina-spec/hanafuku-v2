@@ -8,6 +8,7 @@ export interface Review {
 
 export interface Producto {
   id: string;
+  slug: string;
   nombre: string;
   subtitulo: string;
   categoria: string;

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Producto } from "../types";
+import { toSlug } from "./slug";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -8,6 +9,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface DbProducto {
   id: string;
+  slug: string | null;
   nombre: string;
   subtitulo: string | null;
   categoria: string;
@@ -29,6 +31,7 @@ export function mapDbToProducto(db: DbProducto): Producto {
   const galeria = db.galeria ?? [];
   return {
     id: db.id,
+    slug: db.slug ?? toSlug(db.nombre),
     nombre: db.nombre,
     subtitulo: db.subtitulo ?? "",
     categoria: db.categoria,

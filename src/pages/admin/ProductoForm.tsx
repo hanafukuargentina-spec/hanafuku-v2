@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Save, Loader2, Upload, X, ImageIcon } from "lucide-react";
 import { supabase, uploadImage, type DbProducto } from "../../lib/supabase";
 import { CATEGORIAS } from "../../data/productos.data";
+import { toSlug } from "../../lib/slug";
 import { fadeInUp, stagger } from "../../lib/motion";
 
 const TALLAS_OPTIONS = ["XS", "S", "M", "L", "XL", "Unica"];
@@ -182,6 +183,7 @@ export default function ProductoForm() {
 
       const payload = {
         nombre: form.nombre,
+        slug: toSlug(form.nombre),
         subtitulo: form.subtitulo,
         categoria: form.categoria,
         precio_original: form.precio_original,

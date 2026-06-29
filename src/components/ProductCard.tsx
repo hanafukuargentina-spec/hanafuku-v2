@@ -19,7 +19,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
 
   return (
     <motion.div variants={fadeInUp} className="group">
-      <Link to={`/producto/${producto.id}`} className="block">
+      <Link to={`/producto/${producto.slug}`} className="block">
         <div className="relative aspect-[3/4] bg-card rounded-sm overflow-hidden border border-border group-hover:border-accent/40 transition-colors duration-200">
           {producto.imagen_principal ? (
             <>
